@@ -12,6 +12,18 @@ if [ "$EUID" -eq 0 ]; then
    exit 1
 fi
 
+# Check if we need to clone the repository
+if [ ! -f "package.json" ]; then
+    echo "📥 Cloning repository from GitHub..."
+    if [ -d "mcp-homeassistant-kubernetes" ]; then
+        echo "Directory already exists. Using existing clone."
+        cd mcp-homeassistant-kubernetes
+    else
+        git clone https://github.com/Pete1979/mcp-homeassistant-kubernetes.git
+        cd mcp-homeassistant-kubernetes
+    fi
+fi
+
 # Update system
 echo "📦 Updating system packages..."
 sudo apt update && sudo apt upgrade -y
@@ -29,11 +41,13 @@ echo "✓ npm version: $(npm --version)"
 # Install kubectl
 echo "📦 Installing kubectl..."
 if ! command -v kubectl &> /dev/null; then
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-    rm kubectl
+  Verify we're in the right directory now
+if [ ! -f "package.json" ]; then
+    echo "❌ Error: package.json not found. Something went wrong."
+    exit 1
 fi
 
+echo "✓ Project files found"
 echo "✓ kubectl version: $(kubectl version --client -o json | grep gitVersion | head -1)"
 
 # Create directories
@@ -69,10 +83,15 @@ if [ ! -f "dist/index.js" ]; then
 fi
 
 echo ""
-echo "✅ Setup complete!"
+echo "📍 Current directory: $(pwd)"
 echo ""
 echo "Next steps:"
 echo "1. Copy your kubeconfig to ~/.kube/config"
+echo "   scp ~/.kube/config \$(whoami)@\$(hostname):~/.kube/config"
+echo "2. Edit .env and add your Home Assistant token:"
+echo "   nano .env"
+echo "3. Test the server:"
+echo "  your kubeconfig to ~/.kube/config"
 echo "2. Edit .env and add your Home Assistant token"
 echo "3. Test: npm start"
 echo "4. Setup systemd service (see DEPLOYMENT.md)"
